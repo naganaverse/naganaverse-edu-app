@@ -1,13 +1,211 @@
-import { Text, View } from "react-native";
+import { useState } from "react";
+import { ScrollView, Text, View, Pressable, Dimensions } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
+import { useAuthContext } from "@/lib/auth-context";
+import { useColors } from "@/hooks/use-colors";
+import { cn } from "@/lib/utils";
+
+// Demo Data matching PWA high-fidelity spec
+const DEMO_STATS = [
+  { label: "TOTAL REVENUE", value: "₹12.5k", icon: "💰", color: "#10B981", badge: "+12%" },
+  { label: "TOTAL STUDENTS", value: "156", icon: "🎒", color: "#6C47FF", badge: "+8" },
+  { label: "AVG ATTENDANCE", value: "92%", icon: "✅", color: "#0EA5E9", badge: "↑3%" },
+  { label: "PENDING FEES", value: "₹2.1L", icon: "⚠️", color: "#F59E0B", badge: "14 Students" },
+];
+
+const QUICK_ACTIONS = [
+  { label: "Add Student", icon: "👤", color: "#6C47FF" },
+  { label: "Add Teacher", icon: "📖", color: "#F43F5E" },
+  { label: "New Batch", icon: "📚", color: "#10B981" },
+  { label: "Announce", icon: "📢", color: "#F59E0B" },
+];
 
 export default function OwnerDashboard() {
+  const { user } = useAuthContext();
+  const colors = useColors();
+  const { width } = Dimensions.get("window");
+
   return (
-    <ScreenContainer className="p-4">
-      <View className="flex-1 items-center justify-center">
-        <Text className="text-2xl font-bold text-foreground">Owner Dashboard</Text>
-        <Text className="text-base text-muted mt-2">Coming soon...</Text>
-      </View>
+    <ScreenContainer containerClassName="bg-[#F7F7FB]">
+      <ScrollView 
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }} 
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View className="px-6 pt-12 pb-6 flex-row justify-between items-center">
+          <View>
+            <Text className="text-xs font-bold text-gray-500 tracking-widest uppercase">
+              Good Morning 👋
+            </Text>
+            <Text className="text-2xl font-extrabold text-[#0D0D12] tracking-tight">
+              Dashboard
+            </Text>
+          </View>
+          <View className="flex-row gap-3">
+            <Pressable 
+              className="w-10 h-10 rounded-xl bg-white border border-[#E8E8F0] items-center justify-center shadow-sm"
+            >
+              <Text>🔔</Text>
+              <View className="absolute top-2 right-2 w-2 h-2 bg-[#F43F5E] rounded-full border border-white" />
+            </Pressable>
+            <View 
+              className="w-10 h-10 rounded-xl items-center justify-center"
+              style={{ backgroundColor: colors.primary || "#6C47FF" }}
+            >
+              <Text className="text-white font-bold text-sm">
+                {user?.name?.substring(0, 2).toUpperCase() || "RN"}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Hero Card - Glassmorphism Style */}
+        <View className="px-6 mb-6">
+          <View 
+            className="rounded-[26px] p-6 overflow-hidden"
+            style={{ backgroundColor: "#0D0D12" }}
+          >
+            {/* Decorative Orbs */}
+            <View 
+              className="absolute -top-10 -right-10 w-40 h-40 rounded-full" 
+              style={{ backgroundColor: "rgba(108, 71, 255, 0.15)" }}
+            />
+            <View 
+              className="absolute -bottom-10 -left-10 w-24 h-24 rounded-full" 
+              style={{ backgroundColor: "rgba(16, 185, 129, 0.1)" }}
+            />
+
+            <View className="bg-white/20 self-start px-3 py-1 rounded-full mb-3">
+              <Text className="text-[10px] font-bold text-white/90 tracking-widest uppercase">
+                ✨ Weekly Insights
+              </Text>
+            </View>
+            
+            <Text className="text-2xl font-bold text-white mb-1">Weekly Summary</Text>
+            <Text className="text-xs text-white/60 mb-5">
+              Strong performance across JEE & NEET batches
+            </Text>
+
+            <View className="flex-row gap-4">
+              <View className="bg-white/10 rounded-2xl p-3 border border-white/10 flex-1">
+                <Text className="text-xl font-bold text-white">94%</Text>
+                <Text className="text-[9px] font-bold text-white/50 tracking-widest uppercase">Avg Attend</Text>
+              </View>
+              <View className="bg-white/10 rounded-2xl p-3 border border-white/10 flex-1">
+                <Text className="text-xl font-bold text-white">6</Text>
+                <Text className="text-[9px] font-bold text-white/50 tracking-widest uppercase">Batches</Text>
+              </View>
+              <View className="bg-white/10 rounded-2xl p-3 border border-white/10 flex-1">
+                <Text className="text-xl font-bold text-white">₹2.1L</Text>
+                <Text className="text-[9px] font-bold text-white/50 tracking-widest uppercase">Pending</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Stats Grid */}
+        <View className="px-6 flex-row flex-wrap justify-between gap-y-4">
+          {DEMO_STATS.map((stat, i) => (
+            <View 
+              key={i}
+              className="rounded-[22px] p-4 shadow-sm border border-[#E8E8F0]"
+              style={{ 
+                width: (width - 60) / 2,
+                backgroundColor: "white"
+              }}
+            >
+              <View 
+                className="w-9 h-9 rounded-xl items-center justify-center mb-3"
+                style={{ backgroundColor: stat.color + "15" }}
+              >
+                <Text className="text-lg">{stat.icon}</Text>
+              </View>
+              <View className="absolute top-4 right-4 bg-gray-100 px-2 py-0.5 rounded-full">
+                <Text className="text-[9px] font-bold text-gray-500">{stat.badge}</Text>
+              </View>
+              <Text className="text-2xl font-bold text-[#0D0D12] tracking-tighter">
+                {stat.value}
+              </Text>
+              <Text className="text-[10px] font-bold text-gray-400 tracking-wider uppercase mt-1">
+                {stat.label}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Quick Actions */}
+        <View className="mt-8 px-6">
+          <Text className="text-base font-bold text-[#0D0D12] mb-4">Quick Actions</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-6 px-6">
+            {QUICK_ACTIONS.map((action, i) => (
+              <Pressable 
+                key={i} 
+                className="mr-4 items-center gap-2"
+              >
+                <View 
+                  className="w-14 h-14 rounded-2xl items-center justify-center shadow-md"
+                  style={{ backgroundColor: action.color }}
+                >
+                  <Text className="text-2xl">{action.icon}</Text>
+                </View>
+                <Text className="text-[10px] font-bold text-[#2E2E3E] text-center w-14 leading-tight">
+                  {action.label}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Recent Students Preview */}
+        <View className="mt-8 px-6">
+          <View className="flex-row justify-between items-center mb-4">
+            <Text className="text-base font-bold text-[#0D0D12]">Recent Students</Text>
+            <Pressable>
+              <Text className="text-xs font-bold text-[#6C47FF]">View All</Text>
+            </Pressable>
+          </View>
+
+          {[
+            { name: "Aryan Sharma", class: "Class 11", batch: "JEE Adv.", attendance: 88, status: "Paid" },
+            { name: "Ankit Mugesh", class: "Class 11", batch: "JEE Mains", attendance: 75, status: "Pending" },
+            { name: "Adarsh Singh", class: "Class 12", batch: "JEE Adv.", attendance: 85, status: "Paid" },
+          ].map((student, i) => (
+            <View 
+              key={i} 
+              className="flex-row items-center p-4 bg-white rounded-[20px] mb-3 border border-[#E8E8F0] shadow-sm"
+            >
+              <View className="w-11 h-11 rounded-xl bg-[#6C47FF] items-center justify-center mr-3">
+                <Text className="text-white font-bold">{student.name.substring(0, 1)}</Text>
+              </View>
+              <View className="flex-1">
+                <Text className="text-sm font-bold text-[#0D0D12]">{student.name}</Text>
+                <Text className="text-[10px] text-gray-400 font-medium">{student.class} · {student.batch}</Text>
+                <View className="h-1 bg-gray-100 rounded-full mt-2 overflow-hidden">
+                  <View 
+                    className="h-full rounded-full" 
+                    style={{ 
+                      width: `${student.attendance}%`, 
+                      backgroundColor: student.attendance > 80 ? "#10B981" : "#F59E0B" 
+                    }} 
+                  />
+                </View>
+              </View>
+              <View className="items-end gap-1 ml-3">
+                <View className={cn(
+                  "px-2 py-0.5 rounded-full",
+                  student.status === "Paid" ? "bg-emerald-50" : "bg-amber-50"
+                )}>
+                  <Text className={cn(
+                    "text-[9px] font-extrabold",
+                    student.status === "Paid" ? "text-emerald-600" : "text-amber-600"
+                  )}>{student.status}</Text>
+                </View>
+                <Text className="text-[10px] font-bold text-gray-400">{student.attendance}%</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
     </ScreenContainer>
   );
 }

@@ -45,7 +45,8 @@ export interface RegistrationData {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const BASE_URL = "http://localhost:8000";
+import { CONFIG } from "./config";
+const BASE_URL = CONFIG.BASE_URL;
 
 const initialState: AuthState = {
   user: null,

@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Text, View, FlatList, ActivityIndicator, Pressable } from "react-native";
+import { ScrollView, Text, View, Pressable, FlatList, ActivityIndicator, Dimensions } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useAuthContext } from "@/lib/auth-context";
 import { useColors } from "@/hooks/use-colors";
+import { cn } from "@/lib/utils";
 
 interface Resource {
   resource_id: string;
@@ -12,18 +13,30 @@ interface Resource {
   file_name: string;
   file_url: string;
   file_type: string;
-  is_telegram_file: bool;
+  is_telegram_file: boolean;
   created_at: string;
 }
 
-const BASE_URL = "http://localhost:8000";
+import { CONFIG } from "./config";
+const BASE_URL = CONFIG.BASE_URL;
+
+const SUBJECTS = [
+  { name: "All", icon: "📚", color: "#6C47FF" },
+  { name: "Physics", icon: "⚡", color: "#6C47FF" },
+  { name: "Chemistry", icon: "🧪", color: "#F43F5E" },
+  { name: "Maths", icon: "📐", color: "#10B981" },
+  { name: "Biology", icon: "🧬", color: "#F59E0B" },
+];
 
 export default function StudentDashboard() {
   const { user } = useAuthContext();
   const colors = useColors();
+  const { width } = Dimensions.get("window");
+
   const [resources, setResources] = useState<Resource[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeSub, setActiveSub] = useState("All");
 
   useEffect(() => {
     const fetchResources = async () => {
@@ -31,9 +44,9 @@ export default function StudentDashboard() {
       
       setIsLoading(true);
       try {
-        // Example: Fetching Math notes for the student's class
+        const subjectParam = activeSub === "All" ? "" : `&subject_name=${activeSub}`;
         const response = await fetch(
-          \`\${BASE_URL}/resources/list?org_id=\${user.orgId}&class_name=10th&subject_name=Maths&resource_type=notes\`
+          `${BASE_URL}/resources/list?org_id=${user.orgId}&class_name=10th${subjectParam}&resource_type=notes`
         );
         
         if (!response.ok) {
@@ -50,71 +63,168 @@ export default function StudentDashboard() {
     };
 
     fetchResources();
-  }, [user]);
+  }, [user, activeSub]);
 
-  const renderResource = ({ item }: { item: Resource }) => (
+  const renderResource = ({ item, index }: { item: Resource; index: number }) => (
     <View 
-      className="p-4 mb-3 rounded-lg flex-row items-center justify-between"
-      style={{ backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }}
+      key={item.resource_id}
+      className="flex-row items-center p-4 bg-white rounded-[20px] mb-3 border border-[#E8E8F0] shadow-sm"
     >
-      <View className="flex-row items-center flex-1">
-        <Text className="text-2xl mr-3">
-          {item.is_telegram_file ? "🔹" : "📄"}
+      <View 
+        className="w-11 h-11 rounded-xl items-center justify-center mr-3"
+        style={{ backgroundColor: (SUBJECTS.find(s => s.name === item.subject_name)?.color || "#6C47FF") + "15" }}
+      >
+        <Text className="text-lg">
+          {SUBJECTS.find(s => s.name === item.subject_name)?.icon || "📄"}
         </Text>
-        <View className="flex-1">
-          <Text className="text-base font-semibold text-foreground" numberOfLines={1}>
-            {item.file_name}
-          </Text>
-          <Text className="text-xs text-muted">
-            {item.subject_name} • {item.resource_type.replace("_", " ").toUpperCase()}
-          </Text>
-        </View>
+      </View>
+      <View className="flex-1">
+        <Text className="text-sm font-bold text-[#0D0D12]" numberOfLines={1}>
+          {item.file_name}
+        </Text>
+        <Text className="text-[10px] text-gray-400 font-medium">
+          {item.subject_name} • {item.resource_type.toUpperCase()}
+        </Text>
       </View>
       
       <Pressable 
-        className="ml-2 p-2 rounded-md"
-        style={{ backgroundColor: colors.primary + "20" }}
-        onPress={() => alert(\`Opening \${item.file_name}\`)}
+        className="ml-3 px-4 py-2 rounded-xl bg-[#F3EEFF]"
+        onPress={() => alert(`Opening ${item.file_name}`)}
       >
-        <Text style={{ color: colors.primary }} className="font-semibold">Open</Text>
+        <Text className="text-[11px] font-bold text-[#6C47FF]">View</Text>
       </Pressable>
     </View>
   );
 
   return (
-    <ScreenContainer className="p-4 bg-background">
-      <View className="mb-6">
-        <Text className="text-2xl font-bold text-foreground">My Resources</Text>
-        <Text className="text-base text-muted">Study materials for your classes</Text>
-      </View>
-
-      {isLoading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      ) : error ? (
-        <View className="flex-1 items-center justify-center p-4">
-          <Text className="text-error text-center mb-4">{error}</Text>
-          <Pressable 
-            onPress={() => setError(null)}
-            className="p-3 rounded-lg bg-primary"
-          >
-            <Text className="text-white font-semibold">Retry</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <FlatList
-          data={resources}
-          renderItem={renderResource}
-          keyExtractor={(item) => item.resource_id}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <View className="items-center justify-center py-20">
-              <Text className="text-muted">No resources found for your class.</Text>
+    <ScreenContainer containerClassName="bg-[#F7F7FB]">
+      <ScrollView 
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }} 
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View className="px-6 pt-12 pb-6 flex-row justify-between items-center">
+          <View>
+            <Text className="text-xs font-bold text-gray-500 tracking-widest uppercase">
+              Keep going! 🔥
+            </Text>
+            <Text className="text-2xl font-extrabold text-[#0D0D12] tracking-tight">
+              Hi, {user?.name?.split(" ")[0] || "Student"}
+            </Text>
+          </View>
+          <View className="flex-row gap-3">
+            <Pressable 
+              className="w-10 h-10 rounded-xl bg-white border border-[#E8E8F0] items-center justify-center shadow-sm"
+            >
+              <Text>🔔</Text>
+              <View className="absolute top-2 right-2 w-2 h-2 bg-[#F43F5E] rounded-full border border-white" />
+            </Pressable>
+            <View 
+              className="w-10 h-10 rounded-xl items-center justify-center"
+              style={{ backgroundColor: colors.primary || "#6C47FF" }}
+            >
+              <Text className="text-white font-bold text-sm">
+                {user?.name?.substring(0, 2).toUpperCase() || "AS"}
+              </Text>
             </View>
-          }
-        />
-      )}
+          </View>
+        </View>
+
+        {/* Hero Card - Student Version */}
+        <View className="px-6 mb-6">
+          <View 
+            className="rounded-[26px] p-6 overflow-hidden"
+            style={{ backgroundColor: "#6C47FF" }}
+          >
+            <View 
+              className="absolute -top-10 -right-10 w-40 h-40 rounded-full" 
+              style={{ backgroundColor: "rgba(255, 255, 255, 0.15)" }}
+            />
+            
+            <View className="bg-white/20 self-start px-3 py-1 rounded-full mb-3">
+              <Text className="text-[10px] font-bold text-white/90 tracking-widest uppercase">
+                🎯 JEE Countdown
+              </Text>
+            </View>
+            
+            <Text className="text-2xl font-bold text-white mb-1">127 Days to JEE!</Text>
+            <Text className="text-xs text-white/70 mb-5">
+              Stay consistent — you're on track
+            </Text>
+
+            <View className="flex-row gap-4">
+              <View className="bg-white/10 rounded-2xl p-3 border border-white/10 flex-1 items-center">
+                <Text className="text-xl font-bold text-white">88%</Text>
+                <Text className="text-[8px] font-bold text-white/50 tracking-widest uppercase">Attendance</Text>
+              </View>
+              <View className="bg-white/10 rounded-2xl p-3 border border-white/10 flex-1 items-center">
+                <Text className="text-xl font-bold text-white">3</Text>
+                <Text className="text-[8px] font-bold text-white/50 tracking-widest uppercase">HW Due</Text>
+              </View>
+              <View className="bg-white/10 rounded-2xl p-3 border border-white/10 flex-1 items-center">
+                <Text className="text-xl font-bold text-white">82%</Text>
+                <Text className="text-[8px] font-bold text-white/50 tracking-widest uppercase">Avg Score</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Subject Filter Chips */}
+        <View className="mb-4">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-6">
+            {SUBJECTS.map((s) => (
+              <Pressable
+                key={s.name}
+                onPress={() => setActiveSub(s.name)}
+                className={cn(
+                  "flex-row items-center px-4 py-2 rounded-full mr-2 border",
+                  activeSub === s.name ? "bg-[#6C47FF] border-[#6C47FF] shadow-md" : "bg-white border-[#E8E8F0]"
+                )}
+              >
+                <Text className="mr-2">{s.icon}</Text>
+                <Text className={cn(
+                  "text-xs font-bold",
+                  activeSub === s.name ? "text-white" : "text-gray-400"
+                )}>
+                  {s.name}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Resource List */}
+        <View className="px-6">
+          <View className="flex-row justify-between items-center mb-4">
+            <Text className="text-base font-bold text-[#0D0D12]">Notes Library</Text>
+          </View>
+
+          {isLoading ? (
+            <View className="py-20 items-center justify-center">
+              <ActivityIndicator size="large" color="#6C47FF" />
+            </View>
+          ) : error ? (
+            <View className="py-10 items-center justify-center">
+              <Text className="text-red-500 mb-4">{error}</Text>
+              <Pressable 
+                onPress={() => setActiveSub(activeSub)}
+                className="px-6 py-2 rounded-xl bg-[#6C47FF]"
+              >
+                <Text className="text-white font-bold">Retry</Text>
+              </Pressable>
+            </View>
+          ) : resources.length === 0 ? (
+            <View className="py-20 items-center justify-center">
+              <View className="w-16 h-16 bg-white rounded-2xl items-center justify-center mb-4 border border-[#E8E8F0]">
+                <Text className="text-3xl">📂</Text>
+              </View>
+              <Text className="text-gray-400 font-bold">No resources found</Text>
+            </View>
+          ) : (
+            resources.map((item, index) => renderResource({ item, index }))
+          )}
+        </View>
+      </ScrollView>
     </ScreenContainer>
   );
 }
