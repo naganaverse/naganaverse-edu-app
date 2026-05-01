@@ -1,0 +1,13 @@
+import { Text, View } from "react-native";
+import { ScreenContainer } from "@/components/screen-container";
+
+export default function SuperAdminDashboard() {
+  return (
+    <ScreenContainer className="p-4">
+      <View className="flex-1 items-center justify-center">
+        <Text className="text-2xl font-bold text-foreground">Super Admin Dashboard</Text>
+        <Text className="text-base text-muted mt-2">Coming soon...</Text>
+      </View>
+    </ScreenContainer>
+  );
+}

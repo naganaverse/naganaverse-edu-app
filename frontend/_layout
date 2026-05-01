@@ -1,0 +1,17 @@
+import { Stack } from "expo-router";
+
+export default function DashboardsLayout() {
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen name="super-admin" />
+      <Stack.Screen name="owner" />
+      <Stack.Screen name="teacher" />
+      <Stack.Screen name="student" />
+      <Stack.Screen name="parent" />
+    </Stack>
+  );
+}

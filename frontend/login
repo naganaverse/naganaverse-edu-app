@@ -1,0 +1,202 @@
+import { ScrollView, Text, View, Pressable, TextInput, ActivityIndicator } from "react-native";
+import { useLocalSearchParams, router } from "expo-router";
+import { useState } from "react";
+import { ScreenContainer } from "@/components/screen-container";
+import { useColors } from "@/hooks/use-colors";
+import { useAuthContext, type UserRole } from "@/lib/auth-context";
+
+export default function LoginScreen() {
+  const colors = useColors();
+  const { role: roleParam } = useLocalSearchParams<{ role: string }>();
+  const { login, isLoading, error } = useAuthContext();
+
+  const [orgId, setOrgId] = useState("");
+  const [userId, setUserId] = useState("");
+  const [password, setPassword] = useState("");
+  const [localError, setLocalError] = useState("");
+
+  const role = (roleParam as UserRole) || "student";
+
+  const handleLogin = async () => {
+    setLocalError("");
+
+    if (!orgId.trim()) {
+      setLocalError("Please enter institute code");
+      return;
+    }
+
+    if (!userId.trim()) {
+      setLocalError("Please enter your ID");
+      return;
+    }
+
+    if (!password.trim()) {
+      setLocalError("Please enter your password");
+      return;
+    }
+
+    try {
+      await login(orgId, userId, password, role);
+      // Navigation will be handled by the app layout based on auth state
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : "Login failed");
+    }
+  };
+
+  const roleDisplayNames: Record<UserRole, string> = {
+    super_admin: "Super Admin",
+    owner: "Owner",
+    teacher: "Teacher",
+    student: "Student",
+    parent: "Parent",
+  };
+
+  return (
+    <ScreenContainer containerClassName="bg-background">
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+        <View className="flex-1 justify-between py-8 px-4">
+          {/* Header */}
+          <View className="gap-6">
+            <View className="gap-2">
+              <Pressable onPress={() => router.back()} className="mb-2">
+                <Text className="text-base font-semibold text-primary">← Back</Text>
+              </Pressable>
+
+              <Text className="text-3xl font-bold text-foreground">
+                Login as {roleDisplayNames[role]}
+              </Text>
+              <Text className="text-base text-muted">
+                Enter your credentials to access your account
+              </Text>
+            </View>
+
+            {/* Error Message */}
+            {(localError || error) && (
+              <View
+                className="p-3 rounded-lg"
+                style={{ backgroundColor: colors.error + "20" }}
+              >
+                <Text className="text-sm font-semibold" style={{ color: colors.error }}>
+                  {localError || error}
+                </Text>
+              </View>
+            )}
+
+            {/* Form */}
+            <View className="gap-4">
+              {/* Institute Code */}
+              <View className="gap-2">
+                <Text className="text-sm font-semibold text-foreground">Institute Code</Text>
+                <TextInput
+                  placeholder="e.g., mahaveer_classes"
+                  placeholderTextColor={colors.muted}
+                  value={orgId}
+                  onChangeText={setOrgId}
+                  editable={!isLoading}
+                  className="p-3 rounded-lg text-base text-foreground"
+                  style={{
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                    borderWidth: 1,
+                  }}
+                />
+              </View>
+
+              {/* User ID */}
+              <View className="gap-2">
+                <Text className="text-sm font-semibold text-foreground">
+                  {role === "parent" ? "Student ID" : "Your ID"}
+                </Text>
+                <TextInput
+                  placeholder={
+                    role === "parent"
+                      ? "e.g., STD001"
+                      : role === "student"
+                        ? "e.g., STD001"
+                        : role === "teacher"
+                          ? "e.g., TCH001"
+                          : "e.g., OWN_mahaveer_classes"
+                  }
+                  placeholderTextColor={colors.muted}
+                  value={userId}
+                  onChangeText={setUserId}
+                  editable={!isLoading}
+                  autoCapitalize="characters"
+                  className="p-3 rounded-lg text-base text-foreground"
+                  style={{
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                    borderWidth: 1,
+                  }}
+                />
+              </View>
+
+              {/* Password */}
+              <View className="gap-2">
+                <Text className="text-sm font-semibold text-foreground">
+                  {role === "parent" ? "Last 6 Digits of Phone" : "Password"}
+                </Text>
+                <TextInput
+                  placeholder={role === "parent" ? "e.g., 123456" : "••••••••"}
+                  placeholderTextColor={colors.muted}
+                  value={password}
+                  onChangeText={setPassword}
+                  editable={!isLoading}
+                  secureTextEntry={role !== "parent"}
+                  className="p-3 rounded-lg text-base text-foreground"
+                  style={{
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                    borderWidth: 1,
+                  }}
+                />
+                {role === "parent" && (
+                  <Text className="text-xs text-muted">
+                    Enter the last 6 digits of your registered phone number
+                  </Text>
+                )}
+              </View>
+            </View>
+          </View>
+
+          {/* Login Button */}
+          <View className="gap-3">
+            <Pressable
+              onPress={handleLogin}
+              disabled={isLoading}
+              style={({ pressed }) => [
+                {
+                  backgroundColor: colors.primary,
+                  opacity: pressed || isLoading ? 0.8 : 1,
+                },
+              ]}
+              className="p-4 rounded-lg items-center flex-row justify-center gap-2"
+            >
+              {isLoading ? (
+                <>
+                  <ActivityIndicator color="white" />
+                  <Text className="text-base font-semibold text-white">Logging in...</Text>
+                </>
+              ) : (
+                <Text className="text-base font-semibold text-white">Login</Text>
+              )}
+            </Pressable>
+
+            <Pressable
+              onPress={() => router.back()}
+              disabled={isLoading}
+              className="p-4 rounded-lg items-center"
+              style={{
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                borderWidth: 1,
+              }}
+            >
+              <Text className="text-base font-semibold text-foreground">Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </ScrollView>
+    </ScreenContainer>
+  );
+}

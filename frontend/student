@@ -1,0 +1,120 @@
+import { useState, useEffect } from "react";
+import { Text, View, FlatList, ActivityIndicator, Pressable } from "react-native";
+import { ScreenContainer } from "@/components/screen-container";
+import { useAuthContext } from "@/lib/auth-context";
+import { useColors } from "@/hooks/use-colors";
+
+interface Resource {
+  resource_id: string;
+  class_name: string;
+  subject_name: string;
+  resource_type: string;
+  file_name: string;
+  file_url: string;
+  file_type: string;
+  is_telegram_file: bool;
+  created_at: string;
+}
+
+const BASE_URL = "http://localhost:8000";
+
+export default function StudentDashboard() {
+  const { user } = useAuthContext();
+  const colors = useColors();
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchResources = async () => {
+      if (!user) return;
+      
+      setIsLoading(true);
+      try {
+        // Example: Fetching Math notes for the student's class
+        const response = await fetch(
+          \`\${BASE_URL}/resources/list?org_id=\${user.orgId}&class_name=10th&subject_name=Maths&resource_type=notes\`
+        );
+        
+        if (!response.ok) {
+          throw new Error("Failed to fetch resources");
+        }
+        
+        const data = await response.json();
+        setResources(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchResources();
+  }, [user]);
+
+  const renderResource = ({ item }: { item: Resource }) => (
+    <View 
+      className="p-4 mb-3 rounded-lg flex-row items-center justify-between"
+      style={{ backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }}
+    >
+      <View className="flex-row items-center flex-1">
+        <Text className="text-2xl mr-3">
+          {item.is_telegram_file ? "🔹" : "📄"}
+        </Text>
+        <View className="flex-1">
+          <Text className="text-base font-semibold text-foreground" numberOfLines={1}>
+            {item.file_name}
+          </Text>
+          <Text className="text-xs text-muted">
+            {item.subject_name} • {item.resource_type.replace("_", " ").toUpperCase()}
+          </Text>
+        </View>
+      </View>
+      
+      <Pressable 
+        className="ml-2 p-2 rounded-md"
+        style={{ backgroundColor: colors.primary + "20" }}
+        onPress={() => alert(\`Opening \${item.file_name}\`)}
+      >
+        <Text style={{ color: colors.primary }} className="font-semibold">Open</Text>
+      </Pressable>
+    </View>
+  );
+
+  return (
+    <ScreenContainer className="p-4 bg-background">
+      <View className="mb-6">
+        <Text className="text-2xl font-bold text-foreground">My Resources</Text>
+        <Text className="text-base text-muted">Study materials for your classes</Text>
+      </View>
+
+      {isLoading ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : error ? (
+        <View className="flex-1 items-center justify-center p-4">
+          <Text className="text-error text-center mb-4">{error}</Text>
+          <Pressable 
+            onPress={() => setError(null)}
+            className="p-3 rounded-lg bg-primary"
+          >
+            <Text className="text-white font-semibold">Retry</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <FlatList
+          data={resources}
+          renderItem={renderResource}
+          keyExtractor={(item) => item.resource_id}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View className="items-center justify-center py-20">
+              <Text className="text-muted">No resources found for your class.</Text>
+            </View>
+          }
+        />
+      )}
+    </ScreenContainer>
+  );
+}

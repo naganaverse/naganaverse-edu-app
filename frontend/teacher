@@ -1,0 +1,145 @@
+import { useState } from "react";
+import { Text, View, Pressable, FlatList, ActivityIndicator } from "react-native";
+import { ScreenContainer } from "@/components/screen-container";
+import { useAuthContext } from "@/lib/auth-context";
+import { useColors } from "@/hooks/use-colors";
+
+interface Student {
+  id: string;
+  name: string;
+  roll: string;
+}
+
+const BASE_URL = "http://localhost:8000";
+
+// Mock data for students in a class
+const MOCK_STUDENTS: Student[] = [
+  { id: "S001", name: "Amit Kumar", roll: "1" },
+  { id: "S002", name: "Neha Singh", roll: "2" },
+  { id: "S003", name: "Rahul Verma", roll: "3" },
+  { id: "S004", name: "Priya Das", roll: "4" },
+  { id: "S005", name: "Suresh Raina", roll: "5" },
+];
+
+export default function TeacherDashboard() {
+  const { user } = useAuthContext();
+  const colors = useColors();
+  
+  const [absentIds, setAbsentIds] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  const toggleAttendance = (id: string) => {
+    setAbsentIds(prev => 
+      prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]
+    );
+  };
+
+  const submitAttendance = async () => {
+    if (!user) return;
+    
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(\`\${BASE_URL}/attendance/submit\`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": \`Bearer \${user.token}\`,
+        },
+        body: JSON.stringify({
+          org_id: user.orgId,
+          class_name: "10th", // Example static value
+          subject_name: "Science", // Example static value
+          teacher_id: user.userId,
+          absent_student_ids: absentIds,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Submission failed");
+      }
+
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+      setAbsentIds([]);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Failed to submit attendance");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const renderStudent = ({ item }: { item: Student }) => {
+    const isAbsent = absentIds.includes(item.id);
+    return (
+      <Pressable 
+        onPress={() => toggleAttendance(item.id)}
+        className="p-4 mb-2 rounded-lg flex-row items-center justify-between"
+        style={{ 
+          backgroundColor: isAbsent ? colors.error + "15" : colors.surface,
+          borderColor: isAbsent ? colors.error : colors.border,
+          borderWidth: 1
+        }}
+      >
+        <View>
+          <Text className="text-base font-semibold text-foreground">{item.name}</Text>
+          <Text className="text-xs text-muted">Roll No: {item.roll}</Text>
+        </View>
+        <View 
+          className="w-10 h-10 rounded-full items-center justify-center"
+          style={{ backgroundColor: isAbsent ? colors.error : colors.primary }}
+        >
+          <Text className="text-white font-bold">{isAbsent ? "A" : "P"}</Text>
+        </View>
+      </Pressable>
+    );
+  };
+
+  return (
+    <ScreenContainer className="p-4 bg-background">
+      <View className="mb-6 flex-row justify-between items-end">
+        <View>
+          <Text className="text-2xl font-bold text-foreground">Attendance</Text>
+          <Text className="text-base text-muted">Class 10th | Science</Text>
+        </View>
+        <View className="items-end">
+          <Text className="text-sm font-semibold text-primary">
+            Present: {MOCK_STUDENTS.length - absentIds.length}
+          </Text>
+          <Text className="text-sm font-semibold text-error">
+            Absent: {absentIds.length}
+          </Text>
+        </View>
+      </View>
+
+      {success && (
+        <View className="bg-primary/20 p-3 rounded-lg mb-4">
+          <Text className="text-primary text-center font-bold">✅ Attendance submitted successfully!</Text>
+        </View>
+      )}
+
+      <FlatList
+        data={MOCK_STUDENTS}
+        renderItem={renderStudent}
+        keyExtractor={(item) => item.id}
+        showsVerticalScrollIndicator={false}
+      />
+
+      <Pressable
+        onPress={submitAttendance}
+        disabled={isSubmitting}
+        className="mt-4 p-4 rounded-xl items-center flex-row justify-center"
+        style={{ backgroundColor: colors.primary, opacity: isSubmitting ? 0.7 : 1 }}
+      >
+        {isSubmitting ? (
+          <ActivityIndicator color="white" size="small" className="mr-2" />
+        ) : null}
+        <Text className="text-white text-lg font-bold">
+          {isSubmitting ? "Submitting..." : "Submit Attendance"}
+        </Text>
+      </Pressable>
+    </ScreenContainer>
+  );
+}

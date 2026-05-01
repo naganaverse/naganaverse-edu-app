@@ -1,0 +1,175 @@
+import { ScrollView, Text, View, Pressable } from "react-native";
+import { router } from "expo-router";
+import { ScreenContainer } from "@/components/screen-container";
+import { useColors } from "@/hooks/use-colors";
+import { cn } from "@/lib/utils";
+
+export default function LandingScreen() {
+  const colors = useColors();
+
+  const handleLoginPress = (role: string) => {
+    router.push({
+      pathname: "/auth/login",
+      params: { role },
+    });
+  };
+
+  const handleRegisterPress = () => {
+    router.push("/auth/register");
+  };
+
+  return (
+    <ScreenContainer containerClassName="bg-background">
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+        <View className="flex-1 justify-between py-8 px-4">
+          {/* Hero Section */}
+          <View className="items-center gap-6 mt-12">
+            <View
+              className="w-24 h-24 rounded-full items-center justify-center"
+              style={{ backgroundColor: colors.primary }}
+            >
+              <Text className="text-4xl font-bold text-white">📚</Text>
+            </View>
+
+            <View className="items-center gap-2">
+              <Text className="text-3xl font-bold text-foreground text-center">
+                Naganaverse Education
+              </Text>
+              <Text className="text-base text-muted text-center">
+                Manage your coaching institute with ease
+              </Text>
+            </View>
+          </View>
+
+          {/* Main Content */}
+          <View className="gap-4">
+            {/* Login Section */}
+            <View className="gap-3">
+              <Text className="text-lg font-semibold text-foreground">Login as</Text>
+
+              <Pressable
+                onPress={() => handleLoginPress("super_admin")}
+                style={({ pressed }) => [
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                    borderWidth: 1,
+                    opacity: pressed ? 0.7 : 1,
+                  },
+                ]}
+                className="p-4 rounded-lg"
+              >
+                <Text className="text-base font-semibold text-foreground">
+                  🔐 Super Admin
+                </Text>
+                <Text className="text-sm text-muted mt-1">Platform administrator</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => handleLoginPress("owner")}
+                style={({ pressed }) => [
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                    borderWidth: 1,
+                    opacity: pressed ? 0.7 : 1,
+                  },
+                ]}
+                className="p-4 rounded-lg"
+              >
+                <Text className="text-base font-semibold text-foreground">
+                  👨‍💼 Owner / Director
+                </Text>
+                <Text className="text-sm text-muted mt-1">Manage your institute</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => handleLoginPress("teacher")}
+                style={({ pressed }) => [
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                    borderWidth: 1,
+                    opacity: pressed ? 0.7 : 1,
+                  },
+                ]}
+                className="p-4 rounded-lg"
+              >
+                <Text className="text-base font-semibold text-foreground">
+                  👨‍🏫 Teacher
+                </Text>
+                <Text className="text-sm text-muted mt-1">Manage classes and students</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => handleLoginPress("student")}
+                style={({ pressed }) => [
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                    borderWidth: 1,
+                    opacity: pressed ? 0.7 : 1,
+                  },
+                ]}
+                className="p-4 rounded-lg"
+              >
+                <Text className="text-base font-semibold text-foreground">
+                  👨‍🎓 Student
+                </Text>
+                <Text className="text-sm text-muted mt-1">View your courses and progress</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => handleLoginPress("parent")}
+                style={({ pressed }) => [
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                    borderWidth: 1,
+                    opacity: pressed ? 0.7 : 1,
+                  },
+                ]}
+                className="p-4 rounded-lg"
+              >
+                <Text className="text-base font-semibold text-foreground">
+                  👨‍👩‍👧 Parent
+                </Text>
+                <Text className="text-sm text-muted mt-1">Monitor your child's progress</Text>
+              </Pressable>
+            </View>
+
+            {/* Divider */}
+            <View className="flex-row items-center gap-3 my-2">
+              <View className="flex-1 h-px" style={{ backgroundColor: colors.border }} />
+              <Text className="text-sm text-muted">or</Text>
+              <View className="flex-1 h-px" style={{ backgroundColor: colors.border }} />
+            </View>
+
+            {/* Register Button */}
+            <Pressable
+              onPress={handleRegisterPress}
+              style={({ pressed }) => [
+                {
+                  backgroundColor: colors.primary,
+                  opacity: pressed ? 0.9 : 1,
+                },
+              ]}
+              className="p-4 rounded-lg items-center"
+            >
+              <Text className="text-base font-semibold text-white">
+                ➕ Register New Institute
+              </Text>
+            </Pressable>
+          </View>
+
+          {/* Footer */}
+          <View className="items-center gap-2">
+            <Text className="text-xs text-muted text-center">
+              By logging in, you agree to our Terms of Service and Privacy Policy
+            </Text>
+          </View>
+        </View>
+      </ScrollView>
+    </ScreenContainer>
+  );
+}

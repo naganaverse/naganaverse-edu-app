@@ -1,0 +1,307 @@
+import { ScrollView, Text, View, Pressable, TextInput, ActivityIndicator } from "react-native";
+import { router } from "expo-router";
+import { useState } from "react";
+import { ScreenContainer } from "@/components/screen-container";
+import { useColors } from "@/hooks/use-colors";
+import { useAuthContext } from "@/lib/auth-context";
+
+export default function RegisterScreen() {
+  const colors = useColors();
+  const { register, isLoading, error } = useAuthContext();
+
+  const [step, setStep] = useState(1);
+  const [institutionName, setInstitutionName] = useState("");
+  const [ownerName, setOwnerName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [city, setCity] = useState("");
+  const [referralCode, setReferralCode] = useState("");
+  const [localError, setLocalError] = useState("");
+
+  const handleNext = () => {
+    setLocalError("");
+
+    if (step === 1) {
+      if (!institutionName.trim() || institutionName.trim().length < 3) {
+        setLocalError("Institution name must be at least 3 characters");
+        return;
+      }
+      setStep(2);
+    } else if (step === 2) {
+      if (!ownerName.trim()) {
+        setLocalError("Please enter owner name");
+        return;
+      }
+      setStep(3);
+    } else if (step === 3) {
+      if (!phone.trim() || phone.trim().length < 10) {
+        setLocalError("Please enter a valid phone number");
+        return;
+      }
+      setStep(4);
+    } else if (step === 4) {
+      if (!city.trim()) {
+        setLocalError("Please enter city");
+        return;
+      }
+      setStep(5);
+    }
+  };
+
+  const handleRegister = async () => {
+    setLocalError("");
+
+    try {
+      await register({
+        institutionName,
+        ownerName,
+        phone,
+        city,
+        referralCode: referralCode || undefined,
+      });
+
+      // Show success message and redirect
+      alert("Registration successful! Please wait for approval from admin.");
+      router.replace("/landing");
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : "Registration failed");
+    }
+  };
+
+  const handleBack = () => {
+    if (step > 1) {
+      setStep(step - 1);
+      setLocalError("");
+    } else {
+      router.back();
+    }
+  };
+
+  return (
+    <ScreenContainer containerClassName="bg-background">
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+        <View className="flex-1 justify-between py-8 px-4">
+          {/* Header */}
+          <View className="gap-6">
+            <View className="gap-2">
+              <Pressable onPress={handleBack} className="mb-2">
+                <Text className="text-base font-semibold text-primary">← Back</Text>
+              </Pressable>
+
+              <Text className="text-3xl font-bold text-foreground">
+                Register Your Institute
+              </Text>
+              <Text className="text-base text-muted">
+                Step {step} of 5 - {step === 1 && "Institute Name"}
+                {step === 2 && "Owner Name"}
+                {step === 3 && "Phone Number"}
+                {step === 4 && "City"}
+                {step === 5 && "Referral Code"}
+              </Text>
+            </View>
+
+            {/* Progress Bar */}
+            <View className="flex-row gap-1">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <View
+                  key={s}
+                  className="flex-1 h-1 rounded-full"
+                  style={{
+                    backgroundColor: s <= step ? colors.primary : colors.border,
+                  }}
+                />
+              ))}
+            </View>
+
+            {/* Error Message */}
+            {(localError || error) && (
+              <View
+                className="p-3 rounded-lg"
+                style={{ backgroundColor: colors.error + "20" }}
+              >
+                <Text className="text-sm font-semibold" style={{ color: colors.error }}>
+                  {localError || error}
+                </Text>
+              </View>
+            )}
+
+            {/* Form Fields */}
+            <View className="gap-4">
+              {/* Step 1: Institution Name */}
+              {step === 1 && (
+                <View className="gap-2">
+                  <Text className="text-sm font-semibold text-foreground">
+                    Institution Name
+                  </Text>
+                  <TextInput
+                    placeholder="e.g., Mahaveer Classes"
+                    placeholderTextColor={colors.muted}
+                    value={institutionName}
+                    onChangeText={setInstitutionName}
+                    editable={!isLoading}
+                    className="p-3 rounded-lg text-base text-foreground"
+                    style={{
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                      borderWidth: 1,
+                    }}
+                  />
+                  <Text className="text-xs text-muted">
+                    Minimum 3 characters required
+                  </Text>
+                </View>
+              )}
+
+              {/* Step 2: Owner Name */}
+              {step === 2 && (
+                <View className="gap-2">
+                  <Text className="text-sm font-semibold text-foreground">Owner Name</Text>
+                  <TextInput
+                    placeholder="e.g., Rajesh Kumar"
+                    placeholderTextColor={colors.muted}
+                    value={ownerName}
+                    onChangeText={setOwnerName}
+                    editable={!isLoading}
+                    className="p-3 rounded-lg text-base text-foreground"
+                    style={{
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                      borderWidth: 1,
+                    }}
+                  />
+                </View>
+              )}
+
+              {/* Step 3: Phone */}
+              {step === 3 && (
+                <View className="gap-2">
+                  <Text className="text-sm font-semibold text-foreground">Phone Number</Text>
+                  <TextInput
+                    placeholder="e.g., 9876543210"
+                    placeholderTextColor={colors.muted}
+                    value={phone}
+                    onChangeText={setPhone}
+                    editable={!isLoading}
+                    keyboardType="phone-pad"
+                    className="p-3 rounded-lg text-base text-foreground"
+                    style={{
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                      borderWidth: 1,
+                    }}
+                  />
+                  <Text className="text-xs text-muted">
+                    10-digit mobile number
+                  </Text>
+                </View>
+              )}
+
+              {/* Step 4: City */}
+              {step === 4 && (
+                <View className="gap-2">
+                  <Text className="text-sm font-semibold text-foreground">City</Text>
+                  <TextInput
+                    placeholder="e.g., Delhi"
+                    placeholderTextColor={colors.muted}
+                    value={city}
+                    onChangeText={setCity}
+                    editable={!isLoading}
+                    className="p-3 rounded-lg text-base text-foreground"
+                    style={{
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                      borderWidth: 1,
+                    }}
+                  />
+                </View>
+              )}
+
+              {/* Step 5: Referral Code */}
+              {step === 5 && (
+                <View className="gap-2">
+                  <Text className="text-sm font-semibold text-foreground">
+                    Referral Code (Optional)
+                  </Text>
+                  <TextInput
+                    placeholder="If you have a referral code"
+                    placeholderTextColor={colors.muted}
+                    value={referralCode}
+                    onChangeText={setReferralCode}
+                    editable={!isLoading}
+                    className="p-3 rounded-lg text-base text-foreground"
+                    style={{
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                      borderWidth: 1,
+                    }}
+                  />
+                  <Text className="text-xs text-muted">
+                    Leave empty if you don't have one
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* Buttons */}
+          <View className="gap-3">
+            {step < 5 ? (
+              <Pressable
+                onPress={handleNext}
+                disabled={isLoading}
+                style={({ pressed }) => [
+                  {
+                    backgroundColor: colors.primary,
+                    opacity: pressed || isLoading ? 0.8 : 1,
+                  },
+                ]}
+                className="p-4 rounded-lg items-center"
+              >
+                <Text className="text-base font-semibold text-white">Next</Text>
+              </Pressable>
+            ) : (
+              <Pressable
+                onPress={handleRegister}
+                disabled={isLoading}
+                style={({ pressed }) => [
+                  {
+                    backgroundColor: colors.primary,
+                    opacity: pressed || isLoading ? 0.8 : 1,
+                  },
+                ]}
+                className="p-4 rounded-lg items-center flex-row justify-center gap-2"
+              >
+                {isLoading ? (
+                  <>
+                    <ActivityIndicator color="white" />
+                    <Text className="text-base font-semibold text-white">
+                      Registering...
+                    </Text>
+                  </>
+                ) : (
+                  <Text className="text-base font-semibold text-white">
+                    Complete Registration
+                  </Text>
+                )}
+              </Pressable>
+            )}
+
+            <Pressable
+              onPress={handleBack}
+              disabled={isLoading}
+              className="p-4 rounded-lg items-center"
+              style={{
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                borderWidth: 1,
+              }}
+            >
+              <Text className="text-base font-semibold text-foreground">
+                {step === 1 ? "Cancel" : "Back"}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </ScrollView>
+    </ScreenContainer>
+  );
+}

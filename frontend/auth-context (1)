@@ -1,0 +1,206 @@
+import React, { createContext, useContext, useReducer, useCallback, useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+export type UserRole = "super_admin" | "owner" | "teacher" | "student" | "parent";
+
+export interface AuthUser {
+  userId: string;
+  orgId: string;
+  name: string;
+  role: UserRole;
+  phone?: string;
+  email?: string;
+  telegramId?: number;
+  token?: string;
+}
+
+export interface AuthState {
+  user: AuthUser | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
+}
+
+type AuthAction =
+  | { type: "SET_LOADING"; payload: boolean }
+  | { type: "LOGIN_SUCCESS"; payload: AuthUser }
+  | { type: "LOGIN_ERROR"; payload: string }
+  | { type: "LOGOUT" }
+  | { type: "RESTORE_SESSION"; payload: AuthUser | null };
+
+interface AuthContextType extends AuthState {
+  login: (orgId: string, userId: string, password: string, role: UserRole) => Promise<void>;
+  register: (data: RegistrationData) => Promise<void>;
+  logout: () => Promise<void>;
+  clearError: () => void;
+}
+
+export interface RegistrationData {
+  institutionName: string;
+  ownerName: string;
+  phone: string;
+  city: string;
+  referralCode?: string;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const BASE_URL = "http://localhost:8000";
+
+const initialState: AuthState = {
+  user: null,
+  isAuthenticated: false,
+  isLoading: true,
+  error: null,
+};
+
+function authReducer(state: AuthState, action: AuthAction): AuthState {
+  switch (action.type) {
+    case "SET_LOADING":
+      return { ...state, isLoading: action.payload };
+    case "LOGIN_SUCCESS":
+      return {
+        ...state,
+        user: action.payload,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null,
+      };
+    case "LOGIN_ERROR":
+      return {
+        ...state,
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: action.payload,
+      };
+    case "LOGOUT":
+      return {
+        ...state,
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: null,
+      };
+    case "RESTORE_SESSION":
+      return {
+        ...state,
+        user: action.payload,
+        isAuthenticated: !!action.payload,
+        isLoading: false,
+      };
+    default:
+      return state;
+  }
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [state, dispatch] = useReducer(authReducer, initialState);
+
+  // Restore session on app launch
+  useEffect(() => {
+    const restoreSession = async () => {
+      try {
+        const savedUser = await AsyncStorage.getItem("auth_user");
+        if (savedUser) {
+          const user = JSON.parse(savedUser) as AuthUser;
+          dispatch({ type: "RESTORE_SESSION", payload: user });
+        } else {
+          dispatch({ type: "RESTORE_SESSION", payload: null });
+        }
+      } catch (error) {
+        console.error("Failed to restore session:", error);
+        dispatch({ type: "RESTORE_SESSION", payload: null });
+      }
+    };
+
+    restoreSession();
+  }, []);
+
+  const login = useCallback(
+    async (orgId: string, userId: string, password: string, role: UserRole) => {
+      dispatch({ type: "SET_LOADING", payload: true });
+      try {
+        const response = await fetch(\`\${BASE_URL}/auth/login\`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            org_id: orgId,
+            user_id: userId,
+            password: password,
+            role: role,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.detail || "Login failed");
+        }
+
+        const user: AuthUser = {
+          userId: data.user.user_id,
+          orgId: data.user.org_id,
+          name: data.user.name,
+          role: data.user.role,
+          phone: data.user.phone,
+          token: data.token,
+        };
+
+        await AsyncStorage.setItem("auth_user", JSON.stringify(user));
+        dispatch({ type: "LOGIN_SUCCESS", payload: user });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Login failed";
+        dispatch({ type: "LOGIN_ERROR", payload: errorMessage });
+        throw error;
+      }
+    },
+    []
+  );
+
+  const register = useCallback(async (data: RegistrationData) => {
+    dispatch({ type: "SET_LOADING", payload: true });
+    try {
+      // TODO: Call backend API to register institution
+      console.log("Registering institution:", data);
+      dispatch({ type: "SET_LOADING", payload: false });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Registration failed";
+      dispatch({ type: "LOGIN_ERROR", payload: errorMessage });
+      throw error;
+    }
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      await AsyncStorage.removeItem("auth_user");
+      dispatch({ type: "LOGOUT" });
+    } catch (error) {
+      console.error("Failed to logout:", error);
+    }
+  }, []);
+
+  const clearError = useCallback(() => {
+    dispatch({ type: "SET_LOADING", payload: false });
+  }, []);
+
+  const value: AuthContextType = {
+    ...state,
+    login,
+    register,
+    logout,
+    clearError,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuthContext() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuthContext must be used within AuthProvider");
+  }
+  return context;
+}
